@@ -28,7 +28,17 @@ def build_optimizer(name: str, params, lr: float, weight_decay: float = 0.0,
          "adamw"        -> torch.optim.AdamW(params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
     Chú ý: weight_decay của Adam (L2 trộn vào gradient) khác weight_decay của AdamW (suy giảm tách riêng).
     """
-    raise NotImplementedError  # TODO
+    if name not in OPTIMIZERS:
+        raise ValueError(f"Optimizer {name} not supported")
+        
+    if name == "sgd":
+        return torch.optim.SGD(params, lr=lr, weight_decay=weight_decay)
+    elif name == "sgd_momentum":
+        return torch.optim.SGD(params, lr=lr, momentum=momentum, weight_decay=weight_decay)
+    elif name == "adam":
+        return torch.optim.Adam(params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
+    elif name == "adamw":
+        return torch.optim.AdamW(params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
 
 
 def build_scheduler(optimizer, name: str | None, total_steps: int, **kwargs):
@@ -36,7 +46,12 @@ def build_scheduler(optimizer, name: str | None, total_steps: int, **kwargs):
 
     Trả về None nếu name là None. Nếu bạn dùng scheduler ở một thí nghiệm, hãy ghi vào bảng (cột notes).
     """
-    raise NotImplementedError  # TODO
+    if name is None:
+        return None
+    elif name == "cosine":
+        return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps)
+    else:
+        raise ValueError(f"Scheduler {name} not supported")
 
 
 def clip_gradients(params, max_norm: float | None) -> float:
@@ -49,4 +64,8 @@ def clip_gradients(params, max_norm: float | None) -> float:
     Giá trị trả về chính là `grad_norm` bạn phải ghi lại ở mỗi bước (để thấy "gai" gradient).
     Khi dùng mixed precision FP16 + GradScaler: phải scaler.unscale_(optimizer) TRƯỚC khi gọi hàm này.
     """
-    raise NotImplementedError  # TODO
+    if max_norm is None:
+        total_norm = torch.nn.utils.clip_grad_norm_(params, float('inf'))
+    else:
+        total_norm = torch.nn.utils.clip_grad_norm_(params, max_norm)
+    return float(total_norm)
